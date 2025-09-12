@@ -13,17 +13,24 @@ protocol Assembly: AnyObject {
 
 final class AssemblyMainModule: Assembly {
     func build() -> UIViewController {
-        guard let url = URL(string: "https://dummyjson.com/todos") else { return UIViewController() }
+        guard let url = URL(string: "https://dummyjson.com/todos") else {
+            return UIViewController()
+        }
+        
         let urlConfigurator = URLConfigurator(url: url)
         let networkClient = NetworkClient(urlConfigurator: urlConfigurator)
         let networkManager = NetworkManager(networkClient: networkClient)
-        let coreDataClient = CoreDataClient<ToDo>()
+        let coreDataClient = CoreDataClient.shared
         let coreDataManager = CoreDataManager(coreDataClient: coreDataClient)
         let taskRepository = TaskRepository(networkManager: networkManager, localManager: coreDataManager)
-        let interactor = Interactor(taskRepository: taskRepository)
-        let router = MainModuleRouter()
-        let presenter = MainPresenter(interactor: interactor)
-        let viewController = ViewController(presenter: presenter)
+        let interactor = MainModuleInteractor(taskRepository: taskRepository)
+        let taskCommandFactory = DefaultCommandFactory()
+        let presenter = MainPresenter(interactor: interactor, taskCommand: taskCommandFactory)
+        taskCommandFactory.update(executor: presenter)
+        
+        let viewController = MainViewController(presenter: presenter)
+        let router = MainModuleRouter(viewController: viewController)
+        presenter.change(router: router)
         return viewController
     }
 }

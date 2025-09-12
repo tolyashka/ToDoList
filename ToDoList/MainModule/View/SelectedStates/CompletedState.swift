@@ -7,12 +7,17 @@
 
 import UIKit
 
+fileprivate struct Configurator {
+    static let iconName: String = "checkmark.circle"
+    static let iconTint: UIColor = .systemYellow
+}
+
 final class CompletedState: TaskState {
     let iconName: String
     let iconTint: UIColor
     
-    init(iconName: String = "checkmark.circle",
-         iconTint: UIColor = .systemYellow) {
+    init(iconName: String = Configurator.iconName,
+         iconTint: UIColor = Configurator.iconTint) {
         self.iconName = iconName
         self.iconTint = iconTint
     }
@@ -30,6 +35,6 @@ final class CompletedState: TaskState {
     
     func apply(subtitle label: UILabel, text: String) {
         label.textColor = .selectedWhite
-        label.text = text 
+        label.text = text
     }
 }

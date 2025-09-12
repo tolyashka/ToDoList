@@ -9,6 +9,11 @@ import UIKit
 
 final class TaskDataSource<Cell: UITableViewCell>:
     UITableViewDiffableDataSource<SectionModel, ToDo> {
+
+    var count: Int {
+        var snapshot = self.snapshot()
+        return snapshot.numberOfItems
+    }
     
     init(tableView: UITableView,
          cellCompletion: @escaping (Cell, IndexPath, ToDo) -> Void) {
@@ -30,5 +35,13 @@ final class TaskDataSource<Cell: UITableViewCell>:
         snapshot.appendSections(SectionModel.allCases)
         snapshot.appendItems(items, toSection: .main)
         apply(snapshot, animatingDifferences: animate)
+    }
+    
+    func delete(with item: ToDo) {
+        var snapshot = self.snapshot()
+        if snapshot.indexOfItem(item) != nil {
+            snapshot.deleteItems([item])
+            apply(snapshot, animatingDifferences: false)
+        }
     }
 }

@@ -7,17 +7,22 @@
 
 import UIKit
 
-protocol IMainModuleRouter: AnyObject {
-    func pushToCreateTask()
+final class MainModuleRouter {
+    private weak var viewController: UIViewController?
+    
+    init(viewController: UIViewController) {
+        self.viewController = viewController
+    }
 }
 
-final class MainModuleRouter: IMainModuleRouter {
-    var navigationController: UINavigationController?
+extension MainModuleRouter: MainPresenterInput {
+    func showNewTaskModule() {
+        let newTaskViewController = TaskFormModuleAssembly.assemblyCreateModule()
+        viewController?.navigationController?.pushViewController(newTaskViewController, animated: true)
+    }
     
-    func pushToCreateTask() {
-        let createTaskAssembly = CreateTaskModuleAssembly()
-        let viewController = createTaskAssembly.assembly()
-        print("++", navigationController)
-        navigationController?.pushViewController(viewController, animated: true)
+    func showEditTaskModule(with task: ToDo) {
+        let editTaskViewController = TaskFormModuleAssembly.assemblyEditModule(with: task)
+        viewController?.navigationController?.pushViewController(editTaskViewController, animated: true)
     }
 }

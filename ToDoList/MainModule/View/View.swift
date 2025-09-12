@@ -7,15 +7,14 @@
 
 import UIKit
 
-protocol IView: AnyObject {
-    func showLoading()
-    func hideLoading()
-    func updateCounter(count: Int)
-    func showError(_ message: String)
+fileprivate struct Configurator {
+    static let title = "Мои задачи"
+    static let searchBar = "Поиск задачи"
 }
 
-class ViewController: UIViewController {
-    private let presenter: MainPresenterInput
+final class MainViewController: UIViewController {
+    private let presenter: MainViewOutput
+    private let searchController = UISearchController(searchResultsController: nil)
     
     private lazy var taskOverviewView: TaskOverviewView = {
         let customView = TaskOverviewView()
@@ -27,6 +26,9 @@ class ViewController: UIViewController {
     private lazy var taskTableView: TaskTableView = {
         let tableView = TaskTableView(frame: .zero, style: .grouped)
         tableView.delegate = self
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 120
+        tableView.backgroundColor = .clear
         tableView.translatesAutoresizingMaskIntoConstraints = false
         return tableView
     }()
@@ -38,29 +40,115 @@ class ViewController: UIViewController {
         return activityIndicator
     }()
     
-    init(presenter: MainPresenterInput) {
+    init(presenter: MainViewOutput) {
         self.presenter = presenter
         super.init(nibName: nil, bundle: nil)
     }
     
     @available(*, unavailable)
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        fatalError()
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
-        presenter.viewDidLoaded(view: self)
+        
         presenter.configureDataSource(for: taskTableView)
+        presenter.viewDidLoaded(view: self)
         configureViews()
+        configureNavigationBar()
     }
     
-    private func configureViews() {
-        view.addSubview(activityIndicator)
+    override func viewIsAppearing(_ animated: Bool) {
+        super.viewIsAppearing(animated)
+        presenter.viewWillAppearing()
+    }
+}
+
+extension MainViewController: MainViewInput {
+    func updateCounter(count: Int) {
+        taskOverviewView.updateTask(count: count)
+    }
+    
+    func showLoading() {
+        DispatchQueue.main.async {
+            self.activityIndicator.startAnimating()
+        }
+    }
+        
+    func hideLoading() {
+        DispatchQueue.main.async {
+            self.activityIndicator.stopAnimating()
+        }
+    }
+        
+    func showError(_ message: String) {
+        // FIXME: Переделать
+        let alert = UIAlertController(
+            title: nil,
+            message: message,
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "ОК", style: .default))
+        present(alert, animated: true)
+    }
+}
+
+extension MainViewController: UISearchResultsUpdating {
+    func updateSearchResults(for searchController: UISearchController) {
+        guard let query = searchController.searchBar.text?.lowercased() else { return }
+        presenter.filterTasks(with: query)
+    }
+}
+
+extension MainViewController: UITableViewDelegate {
+    func tableView(
+        _ tableView: UITableView,
+        contextMenuConfigurationForRowAt indexPath: IndexPath,
+        point: CGPoint
+    ) -> UIContextMenuConfiguration? {
+        return UIContextMenuConfiguration(identifier: nil, previewProvider: nil) { _ in
+            self.presenter.makeContextMenu(with: indexPath)
+        }
+    }
+    
+    func tableView(
+        _ tableView: UITableView,
+        willPerformPreviewAction action: UIPreviewActionItem,
+        forRowAt indexPath: IndexPath) -> UITableView.RowAnimation {
+            return .none
+    }
+}
+
+extension MainViewController: TaskOwerviewDelegate {
+    func createTask() {
+        presenter.createTask()
+    }
+}
+
+private extension MainViewController {
+    func configureNavigationBar() {
+        title = Configurator.title
+        navigationController?.navigationBar.prefersLargeTitles = true
+        navigationItem.largeTitleDisplayMode = .always
+        
+        searchController.searchResultsUpdater = self
+        searchController.obscuresBackgroundDuringPresentation = false
+        searchController.searchBar.placeholder = Configurator.searchBar
+        navigationItem.searchController = searchController
+        definesPresentationContext = true
+    }
+    
+    func configureViews() {
         view.addSubview(taskTableView)
         view.addSubview(taskOverviewView)
-        
+        view.addSubview(activityIndicator)
+
+        setLayoutConstraints()
+    }
+    
+    func setLayoutConstraints() {
         NSLayoutConstraint.activate([
             activityIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             activityIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
@@ -75,45 +163,5 @@ class ViewController: UIViewController {
             taskTableView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             taskTableView.bottomAnchor.constraint(equalTo: taskOverviewView.topAnchor),
         ])
-    }
-}
-
-extension ViewController: IView {
-    func updateCounter(count: Int) {
-        taskOverviewView.updateTask(count: count)
-    }
-    
-    func showLoading() {
-        DispatchQueue.main.async {
-            self.activityIndicator.startAnimating()
-        }
-    }
-        
-        func hideLoading() {
-            DispatchQueue.main.async {
-                self.activityIndicator.stopAnimating()
-            }
-        }
-        
-        func showError(_ message: String) {
-            let alert = UIAlertController(
-                title: "Ошибка",
-                message: message,
-                preferredStyle: .alert
-            )
-            alert.addAction(UIAlertAction(title: "ОК", style: .default))
-            present(alert, animated: true)
-        }
-}
-
-extension ViewController: UITableViewDelegate {
-    func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
-        return presenter.heightForRow
-    }
-}
-
-extension ViewController: TaskOwerviewDelegate {
-    func createTask() {
-        presenter.createTask()
     }
 }

@@ -15,10 +15,13 @@ final class TaskTableView: UITableView {
     
     @available(*, unavailable)
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        fatalError()
     }
     
     private func configureCell() {
-        self.register(TaskTableViewCell.self, forCellReuseIdentifier: TaskTableViewCell.identifier)
+        self.register(
+            TaskTableViewCell.self,
+            forCellReuseIdentifier: TaskTableViewCell.identifier
+        )
     }
 }

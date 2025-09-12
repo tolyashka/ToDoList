@@ -7,21 +7,7 @@
 
 import Foundation
 
-protocol InteractorInput: AnyObject {
-    var output: InteractorOutput? { get set }
-    
-    func changeState(with id: Int, newState: Bool)
-    func fetchData()
-}
-
-protocol InteractorOutput: AnyObject {
-    func didStartLoading()
-    func didFinishLoading()
-    func didFailLoading(error: Error)
-    func didLoadTasks(_ model: [ToDo])
-}
-
-final class Interactor: InteractorInput {
+final class MainModuleInteractor: InteractorInput {
     weak var output: InteractorOutput?
     
     private let taskRepository: ITaskRepository
@@ -30,7 +16,9 @@ final class Interactor: InteractorInput {
     init(taskRepository: ITaskRepository) {
         self.taskRepository = taskRepository
     }
-    
+}
+
+extension MainModuleInteractor {
     func fetchData() {
         taskRepository.fetchTasks { [weak self] loadState in
             guard let self else { return }
@@ -66,8 +54,47 @@ final class Interactor: InteractorInput {
             }
         }
     }
-            
-    private func transition(to newState: TaskLoadingState) {
+    
+    func filterTasks(with query: String) {
+        taskRepository.sortWithTitle(
+            matching: query) { [weak self] loadState in
+                guard let self else { return }
+                switch loadState {
+                case .beingUploaded:
+                    output?.didStartLoading()
+                case .uploaded:
+                    output?.didFinishLoading()
+                case .uploadWithError(let error):
+                    output?.didFailLoading(error: error)
+                }
+            } completionHandler: { [weak self] result in
+                guard let self else { return }
+                switch result {
+                case .success(let model):
+                    output?.didLoadTasks(model)
+                case .failure(let error):
+                    output?.didFailLoading(error: error)
+                }
+            }
+
+    }
+    
+    func deleteTask(with id: Int) {
+        taskRepository.delete(
+            with: id) { [weak self] result in
+                guard let self else { return }
+                switch result {
+                case .success(let task):
+                    output?.didDelete(task: task)
+                case .failure(let error):
+                    output?.didFailLoading(error: error)
+                }
+            }
+    }
+}
+
+private extension MainModuleInteractor {
+    func transition(to newState: TaskLoadingState) {
         currentState = newState
         if let output {
             currentState?.execute(on: output)

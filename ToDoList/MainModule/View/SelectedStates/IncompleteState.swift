@@ -7,12 +7,17 @@
 
 import UIKit
 
+fileprivate struct Configurator {
+    static let iconName: String = "circle"
+    static let iconTint: UIColor = .gray
+}
+
 final class IncompleteState: TaskState {
     var iconName: String
     var iconTint: UIColor
     
-    init(iconName: String = "circle",
-         iconTint: UIColor = .gray) {
+    init(iconName: String = Configurator.iconName,
+         iconTint: UIColor = Configurator.iconTint) {
         self.iconName = iconName
         self.iconTint = iconTint
     }

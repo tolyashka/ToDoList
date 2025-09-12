@@ -8,7 +8,7 @@
 protocol ICoreDataManager: AnyObject {
     func fetchTasks(
         dataUploadingHandler: @escaping (LoadState) -> Void,
-        completionHandler: @escaping (Result<[ToDo], Error>) -> Void
+        completionHandler: @escaping (Result<[ToDo], CoreDataError>) -> Void
     )
     
     func updateState(
@@ -17,4 +17,15 @@ protocol ICoreDataManager: AnyObject {
         completionHandler: @escaping (Result<[ToDo], CoreDataError>) -> Void)
     
     func save(tasks: [ToDo])
+    
+    func sortWithTitle(
+        matching query: String?,
+        dataUploadingHandler: @escaping (LoadState) -> Void,
+        completionHandler: @escaping (Result<[ToDo], CoreDataError>) -> Void
+    )
+    
+    func delete(
+        with id: Int,
+        completionHandler: @escaping (Result<ToDo, CoreDataError>) -> Void
+    )
 }

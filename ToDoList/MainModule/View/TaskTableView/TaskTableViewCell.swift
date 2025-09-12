@@ -7,32 +7,6 @@
 
 import UIKit
 
-extension UIFont {
-    static var title: UIFont? {
-        .systemFont(ofSize: 22, weight: .bold)
-    }
-    
-    static var subTitle: UIFont? {
-        .systemFont(ofSize: 16, weight: .regular)
-    }
-}
-
-extension UIColor {
-    static var selectedWhite: UIColor {
-        UIColor(red: 244/255, green: 244/255, blue: 244/255, alpha: 0.5)
-    }
-    
-    static var defaultWhite: UIColor {
-        UIColor(red: 244/255, green: 244/255, blue: 244/255, alpha: 1)
-    }
-}
-
-extension UITableViewCell {
-    static var identifier: String {
-        String(describing: self)
-    }
-}
-
 final class TaskTableViewCell: UITableViewCell {
     var isCompleted: (() -> Void)?
     
@@ -73,10 +47,17 @@ final class TaskTableViewCell: UITableViewCell {
         configureViews()
     }
     
+    @available(*, unavailable)
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        fatalError()
     }
     
+    @objc private func changeCompletionStatus() {
+        isCompleted?()
+    }
+}
+
+extension TaskTableViewCell {
     func updateValue(with model: ToDo) {
         state = model.completed ? CompletedState() : IncompleteState()
         guard let state else { return }
@@ -85,16 +66,19 @@ final class TaskTableViewCell: UITableViewCell {
         state.apply(to: titleLabel, text: model.todo)
         state.apply(subtitle: subTitleLabel, text: model.todo)
     }
-    
-    @objc private func changeCompletionStatus() {
-        isCompleted?()
-    }
-    
-    private func configureViews() {
+}
+
+private extension TaskTableViewCell {
+    func configureViews() {
+        self.backgroundColor = .clear
         contentView.addSubview(statusImageView)
         contentView.addSubview(titleLabel)
         contentView.addSubview(subTitleLabel)
         
+        setLayoutConstraints()
+    }
+    
+    func setLayoutConstraints() {
         NSLayoutConstraint.activate([
             statusImageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 12),
             statusImageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 12),
@@ -107,7 +91,8 @@ final class TaskTableViewCell: UITableViewCell {
             
             subTitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 12),
             subTitleLabel.leadingAnchor.constraint(equalTo: statusImageView.trailingAnchor, constant: 12),
-            subTitleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10)
+            subTitleLabel.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -10),
+            subTitleLabel.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -12)
         ])
     }
 }

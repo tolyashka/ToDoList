@@ -10,6 +10,8 @@ import CoreData
 protocol CoreDataMappable {
     associatedtype Entity: NSManagedObject
     
+    var id: Int { get }
+    
     init(entity: Entity)
     
     func update(entity: Entity)

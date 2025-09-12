@@ -7,17 +7,17 @@
 
 import UIKit
 
-protocol TaskOwerviewDelegate: AnyObject {
-    func createTask()
+fileprivate struct Configurator {
+    static let descriptionTitle = "Задачи не загружены"
+    static let image = "square.and.pencil"
 }
-
 final class TaskOverviewView: UIView {
     weak var delegate: TaskOwerviewDelegate?
     private lazy var descriptionLabel: UILabel = {
         let label = UILabel()
         label.font = .systemFont(ofSize: 16)
         label.textAlignment = .center
-        label.text = "Задачи не загружены"
+        label.text = Configurator.descriptionTitle
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -28,7 +28,7 @@ final class TaskOverviewView: UIView {
             action: #selector(imageViewTapped)
         )
         
-        let image = UIImage(systemName: "square.and.pencil")
+        let image = UIImage(systemName: Configurator.image)
         let imageView = UIImageView(image: image)
         imageView.tintColor = .systemYellow
         imageView.isUserInteractionEnabled = true
@@ -45,7 +45,7 @@ final class TaskOverviewView: UIView {
     
     @available(*, unavailable)
     required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+        fatalError()
     }
     
     func updateTask(count: Int) {
@@ -70,13 +70,13 @@ private extension TaskOverviewView {
     
     func setLayoutConstraints() {
         NSLayoutConstraint.activate([
-            createTaskImage.topAnchor.constraint(equalTo: self.descriptionLabel.topAnchor, constant: -8),
-            createTaskImage.trailingAnchor.constraint(equalTo: self.trailingAnchor, constant: -25),
+            createTaskImage.topAnchor.constraint(equalTo: descriptionLabel.topAnchor, constant: -8),
+            createTaskImage.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -25),
             createTaskImage.widthAnchor.constraint(equalToConstant: 28),
             createTaskImage.heightAnchor.constraint(equalToConstant: 28),
             
-            descriptionLabel.centerYAnchor.constraint(equalTo: self.centerYAnchor, constant: -10),
-            descriptionLabel.centerXAnchor.constraint(equalTo: self.centerXAnchor),
+            descriptionLabel.centerYAnchor.constraint(equalTo: centerYAnchor, constant: -10),
+            descriptionLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
             descriptionLabel.trailingAnchor.constraint(equalTo: createTaskImage.leadingAnchor, constant: 10)
         ])
     }

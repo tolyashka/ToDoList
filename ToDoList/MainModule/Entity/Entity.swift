@@ -16,6 +16,13 @@ struct ToDo: Decodable, Hashable {
     let todo: String
     let completed: Bool
     let userId: Int
+    
+    init(id: Int, todo: String, completed: Bool, userId: Int) {
+        self.id = id
+        self.todo = todo
+        self.completed = completed
+        self.userId = userId
+    }
 }
 
 extension ToDo: CoreDataMappable {

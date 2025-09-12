@@ -14,14 +14,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let scene = (scene as? UIWindowScene) else { return }
-        let navigationController = UINavigationController()
+        window = UIWindow(windowScene: scene)
         let assemblyMainModule = AssemblyMainModule()
-        let coordinator = MainModuleCoordinator(navigationController: navigationController, mainModuleAssembly: assemblyMainModule)
-        coordinator.start()
-//        let assembly = AssemblyMainModule()
-//        window = UIWindow(windowScene: scene)
-//        window?.rootViewController = assembly.build()
-//        window?.makeKeyAndVisible() 
+        let rootViewController = assemblyMainModule.build()
+        let navigationController = UINavigationController(rootViewController: rootViewController)
+        window?.rootViewController = navigationController
+        window?.overrideUserInterfaceStyle = .dark 
+        window?.makeKeyAndVisible()
     }
 }
 

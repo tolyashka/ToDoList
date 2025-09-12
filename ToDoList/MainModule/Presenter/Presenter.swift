@@ -6,45 +6,46 @@
 //
 
 import UIKit
-
-protocol MainPresenterInput: AnyObject {
-    var heightForRow: CGFloat { get }
-    
-    func createTask()
-    func configureDataSource(for tableView: UITableView)
-    func changeState(with id: Int, newState: Bool)
-    func viewDidLoaded(view: IView)
+fileprivate struct Configurator {
+    static let menuTitle = "Действия"
 }
 
 final class MainPresenter {
-    weak var view: IView?
+    weak var view: MainViewInput?
     private var diffableDataSource: TaskDataSource<TaskTableViewCell>?
+    private var router: MainPresenterInput?
     private let interactor: InteractorInput
+    private let taskCommandFactory: TaskCommandFactory
     
-    init(interactor: InteractorInput, coordinator: Coordinator) {
+    private lazy var taskCommand = taskCommandFactory.makeCommands()
+    
+    init(interactor: InteractorInput, taskCommand: TaskCommandFactory) {
         self.interactor = interactor
-        self.coordinator = coordinator
+        self.taskCommandFactory = taskCommand
+    }
+    
+    func change(router: MainPresenterInput) {
+        self.router = router
     }
 }
 
-extension MainPresenter: MainPresenterInput {
-    var heightForRow: CGFloat {
-        120.0
-    }
-        
-    func viewDidLoaded(view: IView) {
+extension MainPresenter: MainViewOutput {
+    func viewDidLoaded(view: MainViewInput) {
         self.view = view
         self.interactor.output = self
+    }
+    
+    func viewWillAppearing() {
         interactor.fetchData()
     }
     
     func configureDataSource(for tableView: UITableView) {
         diffableDataSource = TaskDataSource(
-                tableView: tableView) { cell, indexPath, model in
-                    cell.updateValue(with: model)
-                    cell.isCompleted = { [weak self] in
-                        self?.changeState(with: model.id, newState: !model.completed)
-                    }
+        tableView: tableView) { cell, indexPath, model in
+            cell.updateValue(with: model)
+            cell.isCompleted = { [weak self] in
+                self?.changeState(with: model.id, newState: !model.completed)
+            }
         }
     }
     
@@ -53,13 +54,21 @@ extension MainPresenter: MainPresenterInput {
     }
     
     func createTask() {
-        print("--")
-        let coordinator = coordinator as? MainModuleCoordinator
-        coordinator?.showNewTaskModule()
+        router?.showNewTaskModule()
+    }
+    
+    func filterTasks(with query: String) {
+        interactor.filterTasks(with: query)
     }
 }
 
 extension MainPresenter: InteractorOutput {
+    func didDelete(task: ToDo) {
+        diffableDataSource?.delete(with: task)
+        guard let count = diffableDataSource?.count else { return }
+        view?.updateCounter(count: count)
+    }
+    
     func didStartLoading() {
         view?.showLoading()
     }
@@ -75,5 +84,29 @@ extension MainPresenter: InteractorOutput {
     func didLoadTasks(_ model: [ToDo]) {
         view?.updateCounter(count: model.count)
         diffableDataSource?.apply(with: model, animated: false)
+    }
+    
+    func makeContextMenu(with indexPath: IndexPath) -> UIMenu {
+        return TaskCommandMenu(
+            title: Configurator.menuTitle,
+            commands: taskCommand,
+            indexPath: indexPath
+        )
+    }
+}
+
+extension MainPresenter: TaskCommandProtocol {
+    func editTask(with indexPath: IndexPath) {
+        guard let task = diffableDataSource?.itemIdentifier(for: indexPath) else { return }
+        router?.showEditTaskModule(with: task)
+    }
+    
+    func shareTask(with indexPath: IndexPath) {
+        print("SHARE")
+    }
+    
+    func deleteTask(with indexPath: IndexPath) {
+        guard let task = diffableDataSource?.itemIdentifier(for: indexPath) else { return }
+        interactor.deleteTask(with: task.id)
     }
 }
