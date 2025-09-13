@@ -60,9 +60,9 @@ final class MainViewController: UIViewController {
         configureNavigationBar()
     }
     
-    override func viewIsAppearing(_ animated: Bool) {
-        super.viewIsAppearing(animated)
-        presenter.viewWillAppearing()
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        presenter.viewDidAppearing()
     }
 }
 

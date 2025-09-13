@@ -35,7 +35,7 @@ extension MainPresenter: MainViewOutput {
         self.interactor.output = self
     }
     
-    func viewWillAppearing() {
+    func viewDidAppearing() {
         interactor.fetchData()
     }
     

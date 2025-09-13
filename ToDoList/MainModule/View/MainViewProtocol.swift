@@ -16,7 +16,7 @@ protocol MainViewInput: AnyObject {
 
 protocol MainViewOutput: AnyObject {
     func createTask()
-    func viewWillAppearing()
+    func viewDidAppearing()
     func viewDidLoaded(view: MainViewInput)
     func filterTasks(with query: String)
     func makeContextMenu(with indexPath: IndexPath) -> UIMenu
