@@ -23,13 +23,17 @@ extension CoreDataManager: ICoreDataManager {
     
     func delete(with id: Int, completionHandler: @escaping (Result<ToDo, CoreDataError>) -> Void) {
         coreDataClient.deleteTask(withId: id) { (result: Result<ToDo, CoreDataError>) in
-                switch result {
-                case .success(let model):
+            switch result {
+            case .success(let model):
+                DispatchQueue.main.async {
                     completionHandler(.success(model))
-                case .failure(let error):
+                }
+            case .failure(let error):
+                DispatchQueue.main.async {
                     completionHandler(.failure(error))
                 }
             }
+        }
     }
     
     func fetchTasks(
@@ -71,15 +75,15 @@ extension CoreDataManager: ICoreDataManager {
         newState: Bool,
         completionHandler: @escaping (Result<[ToDo], CoreDataError>) -> Void
     ) {
-            coreDataClient.updateCompletedState(
-                for: id,
-                isCompleted: newState) { (result: CoreDataResult) in
-                    switch result {
-                    case .success(let model):
-                        completionHandler(.success(model))
-                    case .failure(let error):
-                        completionHandler(.failure(error))
-                    }
+        coreDataClient.updateCompletedState(
+            for: id,
+            isCompleted: newState) { (result: CoreDataResult) in
+                switch result {
+                case .success(let model):
+                    completionHandler(.success(model))
+                case .failure(let error):
+                    completionHandler(.failure(error))
                 }
-        }
+            }
+    }
 }

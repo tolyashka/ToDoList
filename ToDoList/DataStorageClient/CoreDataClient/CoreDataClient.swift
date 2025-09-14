@@ -13,7 +13,8 @@ fileprivate enum Key: String {
 }
 
 fileprivate enum SortKey: String {
-    case id = "id == %d"
+    case idDecimal = "id == %d"
+    case idAll = "id == %@"
     case todoContains = "todo CONTAINS[cd] %@"
 }
 
@@ -78,7 +79,7 @@ extension CoreDataClient: ICoreDataClient {
             let request = NSFetchRequest<Model.Entity>(
                 entityName: String(describing: Model.Entity.self)
             )
-            request.predicate = NSPredicate(format: SortKey.id.rawValue, id)
+            request.predicate = NSPredicate(format: SortKey.idDecimal.rawValue, id)
             request.fetchLimit = 1
             
             do {
@@ -167,30 +168,37 @@ extension CoreDataClient: ICoreDataClient {
         completionHandler: @escaping (Result<Model, CoreDataError>) -> Void
     ) {
         container.performBackgroundTask { context in
-            let request = NSFetchRequest<Model.Entity>(
-                entityName: String(describing: Model.Entity.self)
-            )
-            request.predicate = NSPredicate(format: SortKey.id.rawValue, id)
+            let request = NSFetchRequest<Model.Entity>(entityName: String(describing: Model.Entity.self))
+            request.predicate = NSPredicate(format: SortKey.idAll.rawValue, NSNumber(value: id))
             request.fetchLimit = 1
             
             do {
                 if let entity = try context.fetch(request).first {
+                    let model = Model(entity: entity)
                     context.delete(entity)
                     try context.save()
-                    DispatchQueue.main.async { completionHandler(.success(Model(entity: entity))) }
+                    
+                    DispatchQueue.main.async {
+                        completionHandler(.success(model))
+                    }
                 } else {
-                    DispatchQueue.main.async { completionHandler(.failure(.noData())) }
+                    DispatchQueue.main.async {
+                        completionHandler(.failure(.noData()))
+                    }
                 }
             } catch {
-                DispatchQueue.main.async { completionHandler(.failure(.saveFailed(error.localizedDescription))) }
+                DispatchQueue.main.async {
+                    completionHandler(.failure(.saveFailed(error.localizedDescription)))
+                }
             }
         }
+
     }
     
     func update<Draft: CoreDataDraft>(for id: Int, with draft: Draft) {
         let entityName = String(describing: Draft.Entity.self)
         let fetchRequest = NSFetchRequest<Draft.Entity>(entityName: entityName)
-        fetchRequest.predicate = NSPredicate(format: SortKey.id.rawValue, id)
+        fetchRequest.predicate = NSPredicate(format: SortKey.idDecimal.rawValue, id)
         fetchRequest.fetchLimit = 1
         
         guard let entity = try? viewContext.fetch(fetchRequest).first else { return }
