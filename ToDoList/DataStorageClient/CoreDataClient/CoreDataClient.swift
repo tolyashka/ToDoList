@@ -174,25 +174,16 @@ extension CoreDataClient: ICoreDataClient {
             
             do {
                 if let entity = try context.fetch(request).first {
-                    let model = Model(entity: entity)
                     context.delete(entity)
                     try context.save()
-                    
-                    DispatchQueue.main.async {
-                        completionHandler(.success(model))
-                    }
+                    DispatchQueue.main.async { completionHandler(.success(Model(entity: entity))) }
                 } else {
-                    DispatchQueue.main.async {
-                        completionHandler(.failure(.noData()))
-                    }
+                    DispatchQueue.main.async { completionHandler(.failure(.noData())) }
                 }
             } catch {
-                DispatchQueue.main.async {
-                    completionHandler(.failure(.saveFailed(error.localizedDescription)))
-                }
+                DispatchQueue.main.async { completionHandler(.failure(.saveFailed(error.localizedDescription))) }
             }
         }
-
     }
     
     func update<Draft: CoreDataDraft>(for id: Int, with draft: Draft) {
