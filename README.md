@@ -25,6 +25,10 @@
 
 <img width="250" height="600" alt="simulator_screenshot_F381678F-5DC3-4725-89A0-76110C405593" src="https://github.com/user-attachments/assets/12cddc7c-3117-4720-843b-f9c96bf5fc40" />
 
+В случае отсутствия подключения к интернету при первом запуске: 
+
+<img width="250" height="600" alt="Simulator Screenshot - Iphone 16 pro - 2025-09-14 at 12 18 28" src="https://github.com/user-attachments/assets/793f8455-40b7-4f34-8b92-aa810889f700" />
+
 
 ## Фильтрация. 
 В техническом задании не было задано, по какому параметру производить фильтрацию. Фильтрация была произведена по полю todo.
