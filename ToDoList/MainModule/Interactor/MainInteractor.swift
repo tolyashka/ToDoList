@@ -34,7 +34,9 @@ extension MainModuleInteractor {
             guard let self else { return }
             switch resultModel {
             case .success(let taskModel):
-                output?.didLoadTasks(taskModel)
+                DispatchQueue.main.async {
+                    self.output?.didLoadTasks(taskModel)
+                }
             case .failure(let error):
                 output?.didFailLoading(error: error)
             }
@@ -48,7 +50,9 @@ extension MainModuleInteractor {
             guard let self else { return }
             switch result {
             case .success(let taskModel):
-                output?.didLoadTasks(taskModel)
+                DispatchQueue.main.async {
+                    self.output?.didLoadTasks(taskModel)
+                }
             case .failure(let error):
                 output?.didFailLoading(error: error)
             }
@@ -71,12 +75,13 @@ extension MainModuleInteractor {
                 guard let self else { return }
                 switch result {
                 case .success(let model):
-                    output?.didLoadTasks(model)
+                    DispatchQueue.main.async {
+                        self.output?.didLoadTasks(model)
+                    }
                 case .failure(let error):
                     output?.didFailLoading(error: error)
                 }
             }
-
     }
     
     func deleteTask(with id: Int) {
@@ -85,7 +90,9 @@ extension MainModuleInteractor {
                 guard let self else { return }
                 switch result {
                 case .success(let task):
-                    output?.didDelete(task: task)
+                    DispatchQueue.main.async {
+                        self.output?.didDelete(task: task)
+                    }
                 case .failure(let error):
                     output?.didFailLoading(error: error)
                 }
