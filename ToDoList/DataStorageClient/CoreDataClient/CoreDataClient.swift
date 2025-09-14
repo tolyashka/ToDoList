@@ -13,7 +13,7 @@ fileprivate enum Key: String {
 }
 
 fileprivate enum SortKey: String {
-    case id = "id == %@"
+    case id = "id == %d"
     case todoContains = "todo CONTAINS[cd] %@"
 }
 
@@ -32,39 +32,39 @@ final class CoreDataClient {
     private var viewContext: NSManagedObjectContext {
         container.viewContext
     }
-    
-    private func performBackgroundTask(
-        _ block: @escaping (NSManagedObjectContext) throws -> Void) {
-            container.performBackgroundTask { context in
-                do {
-                    try block(context)
-                } catch { }
-            }
-        }
 }
 
 extension CoreDataClient: ICoreDataClient {
+    
     func save<Model: CoreDataMappable>(tasks: [Model]) {
-        performBackgroundTask { context in
-            tasks.forEach { $0.update(entity: Model.Entity(context: context)) }
-            if context.hasChanges { try context.save() }
+        container.performBackgroundTask { context in
+            tasks.forEach { task in
+                let entity = Model.Entity(context: context)
+                task.update(entity: entity)
+            }
+            try? context.save()
         }
     }
     
     func fetchTasks<Model: CoreDataMappable>(
         with completionHandler: @escaping (Result<[Model], CoreDataError>) -> Void
     ) {
-        performBackgroundTask { context in
-            let request = NSFetchRequest<Model.Entity>(entityName: String(describing: Model.Entity.self))
+        container.performBackgroundTask { context in
+            let request = NSFetchRequest<Model.Entity>(
+                entityName: String(describing: Model.Entity.self)
+            )
             request.sortDescriptors = [NSSortDescriptor(key: Key.id.rawValue, ascending: true)]
             
-            let entities = try context.fetch(request)
-            let models = entities.map { Model(entity: $0) }
-            
-            DispatchQueue.main.async {
-                models.isEmpty
-                ? completionHandler(.failure(.noData()))
-                : completionHandler(.success(models))
+            do {
+                let entities = try context.fetch(request)
+                if entities.isEmpty {
+                    DispatchQueue.main.async { completionHandler(.failure(.noData())) }
+                    return
+                }
+                let models = entities.map { Model(entity: $0) }
+                DispatchQueue.main.async { completionHandler(.success(models)) }
+            } catch {
+                DispatchQueue.main.async { completionHandler(.failure(.fetchFailed(error.localizedDescription))) }
             }
         }
     }
@@ -74,27 +74,28 @@ extension CoreDataClient: ICoreDataClient {
         isCompleted: Bool,
         completionHandler: @escaping (Result<[Model], CoreDataError>) -> Void
     ) {
-        performBackgroundTask { [weak self] context in
-            let request = NSFetchRequest<Model.Entity>(entityName: String(describing: Model.Entity.self))
-            request.predicate = NSPredicate(format: SortKey.id.rawValue, NSNumber(value: id))
+        container.performBackgroundTask { context in
+            let request = NSFetchRequest<Model.Entity>(
+                entityName: String(describing: Model.Entity.self)
+            )
+            request.predicate = NSPredicate(format: SortKey.id.rawValue, id)
             request.fetchLimit = 1
             
-            guard let entity = try context.fetch(request).first else {
-                DispatchQueue.main.async {
+            do {
+                guard let entity = try context.fetch(request).first else {
                     completionHandler(.failure(.noData()))
+                    return
                 }
-                return
+                
+                entity.setValue(isCompleted, forKey: Key.completed.rawValue)
+                try context.save()
+                
+                self.fetchTasks { result in
+                    completionHandler(result)
+                }
+            } catch {
+                completionHandler(.failure(.saveFailed(error.localizedDescription)))
             }
-            
-            entity.setValue(isCompleted, forKey: Key.completed.rawValue)
-            try context.save()
-            
-            let entities = try context.fetch(
-                NSFetchRequest<Model.Entity>(entityName: String(describing: Model.Entity.self))
-             )
-            let models = entities.map { Model(entity: $0) }
-            
-            DispatchQueue.main.async { completionHandler(.success(models)) }
         }
     }
     
@@ -107,13 +108,9 @@ extension CoreDataClient: ICoreDataClient {
             task.update(entity: entity)
             do {
                 try context.save()
-                DispatchQueue.main.async {
-                    completionHandler(.success(task))
-                }
+                DispatchQueue.main.async { completionHandler(.success(task)) }
             } catch {
-                DispatchQueue.main.async {
-                    completionHandler(.failure(.saveFailed(error.localizedDescription)))
-                }
+                DispatchQueue.main.async { completionHandler(.failure(.saveFailed(error.localizedDescription))) }
             }
         }
     }
@@ -130,19 +127,13 @@ extension CoreDataClient: ICoreDataClient {
             
             do {
                 guard let entity = try context.fetch(request).first else {
-                    DispatchQueue.main.async {
-                        completionHandler(.failure(.noData()))
-                    }
+                    DispatchQueue.main.async { completionHandler(.failure(.noData())) }
                     return
                 }
                 let model = Model(entity: entity)
-                DispatchQueue.main.async {
-                    completionHandler(.success(model))
-                }
+                DispatchQueue.main.async { completionHandler(.success(model)) }
             } catch {
-                DispatchQueue.main.async {
-                    completionHandler(.failure(.fetchFailed(error.localizedDescription)))
-                }
+                DispatchQueue.main.async { completionHandler(.failure(.fetchFailed(error.localizedDescription))) }
             }
         }
     }
@@ -155,63 +146,46 @@ extension CoreDataClient: ICoreDataClient {
             let request = NSFetchRequest<Model.Entity>(
                 entityName: String(describing: Model.Entity.self)
             )
-            
             request.sortDescriptors = [NSSortDescriptor(key: Key.id.rawValue, ascending: true)]
             
             if let query = query, !query.isEmpty {
-                request.predicate = NSPredicate(
-                    format: SortKey.todoContains.rawValue, query
-                )
+                request.predicate = NSPredicate(format: SortKey.todoContains.rawValue, query)
             }
             
             do {
                 let entities = try context.fetch(request)
                 let models = entities.map { Model(entity: $0) }
-                DispatchQueue.main.async {
-                    completionHandler(.success(models))
-                }
+                DispatchQueue.main.async { completionHandler(.success(models)) }
             } catch {
-                DispatchQueue.main.async {
-                    completionHandler(.failure(.fetchFailed(error.localizedDescription)))
-                }
+                DispatchQueue.main.async { completionHandler(.failure(.fetchFailed(error.localizedDescription))) }
             }
         }
-        
     }
     
     func deleteTask<Model: CoreDataMappable>(
         withId id: Int,
         completionHandler: @escaping (Result<Model, CoreDataError>) -> Void
     ) {
-        performBackgroundTask { context in
-            let request = NSFetchRequest<Model.Entity>(entityName: String(describing: Model.Entity.self))
-            request.predicate = NSPredicate(format: SortKey.id.rawValue, NSNumber(value: id))
+        container.performBackgroundTask { context in
+            let request = NSFetchRequest<Model.Entity>(
+                entityName: String(describing: Model.Entity.self)
+            )
+            request.predicate = NSPredicate(format: SortKey.id.rawValue, id)
             request.fetchLimit = 1
             
             do {
                 if let entity = try context.fetch(request).first {
-                    let model = Model(entity: entity)
                     context.delete(entity)
                     try context.save()
-                    
-                    DispatchQueue.main.async {
-                        completionHandler(.success(model))
-                    }
+                    DispatchQueue.main.async { completionHandler(.success(Model(entity: entity))) }
                 } else {
-                    DispatchQueue.main.async {
-                        completionHandler(.failure(.noData()))
-                    }
+                    DispatchQueue.main.async { completionHandler(.failure(.noData())) }
                 }
             } catch {
-                DispatchQueue.main.async {
-                    completionHandler(.failure(.saveFailed(error.localizedDescription)))
-                }
+                DispatchQueue.main.async { completionHandler(.failure(.saveFailed(error.localizedDescription))) }
             }
         }
-
     }
-
-
     
     func update<Draft: CoreDataDraft>(for id: Int, with draft: Draft) {
         let entityName = String(describing: Draft.Entity.self)
@@ -219,14 +193,9 @@ extension CoreDataClient: ICoreDataClient {
         fetchRequest.predicate = NSPredicate(format: SortKey.id.rawValue, id)
         fetchRequest.fetchLimit = 1
         
-        guard let entity = try? viewContext.fetch(fetchRequest).first else {
-            return
-        }
-        
+        guard let entity = try? viewContext.fetch(fetchRequest).first else { return }
         draft.apply(to: entity)
         
-        if viewContext.hasChanges {
-            try? viewContext.save()
-        }
+        if viewContext.hasChanges { try? viewContext.save() }
     }
 }

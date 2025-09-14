@@ -9,6 +9,8 @@ import Foundation
 
 final class LoadingState: TaskLoadingState {
     func execute(on output: InteractorOutput?) {
-        output?.didStartLoading()
+        DispatchQueue.main.async {
+            output?.didStartLoading()
+        }
     }
 }

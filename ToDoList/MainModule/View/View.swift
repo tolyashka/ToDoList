@@ -72,15 +72,11 @@ extension MainViewController: MainViewInput {
     }
     
     func showLoading() {
-        DispatchQueue.main.async {
-            self.activityIndicator.startAnimating()
-        }
+        self.activityIndicator.startAnimating()
     }
         
     func hideLoading() {
-        DispatchQueue.main.async {
-            self.activityIndicator.stopAnimating()
-        }
+        self.activityIndicator.stopAnimating()
     }
         
     func showError(_ message: String) {
